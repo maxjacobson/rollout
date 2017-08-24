@@ -2,6 +2,7 @@
 name = "rollout"
 version = "0.1.0"
 authors = ["Max Jacobson <max@hardscrabble.net>"]
+readme = "README.md"
 
 [dependencies]
 redis = "0.8"
