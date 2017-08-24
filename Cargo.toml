@@ -1,8 +1,10 @@
 [package]
 name = "rollout"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Max Jacobson <max@hardscrabble.net>"]
 readme = "README.md"
+description = "A feature flipper library"
+license = "MIT"
 
 [dependencies]
 redis = "0.8"
