@@ -12,28 +12,27 @@ pub struct Flipper {
 }
 
 impl Flipper {
-    pub fn new() -> Flipper {
-        let client = redis::Client::open("redis://127.0.0.1/").unwrap();
+    pub fn new() -> Result<Flipper, redis::RedisError> {
+        let client = redis::Client::open("redis://127.0.0.1/")?;
 
-        Flipper { connection: client.get_connection().unwrap() }
+        Ok(Flipper { connection: client.get_connection()? })
     }
 
-    pub fn active(&self, feature: &str, ident: &str) -> bool {
+    pub fn active(&self, feature: &str, ident: &str) -> Result<bool, redis::RedisError> {
         let key = format!("{}_{}", feature, ident);
-        let val: Result<String, redis::RedisError> = self.connection.get(&key);
-        match val {
-            Ok(val) => val == "true",
-            Err(_) => false,
-        }
+        let result: Result<String, redis::RedisError> = self.connection.get(&key);
+        Ok(result? == "true")
     }
 
-    pub fn activate(&self, feature: &str, ident: &str) {
+    pub fn activate(&self, feature: &str, ident: &str) -> Result<(), redis::RedisError> {
         let key = format!("{}_{}", feature, ident);
-        let _: () = self.connection.set(&key, "true").unwrap();
+        let success: () = self.connection.set(&key, "true")?;
+        Ok(success)
     }
 
-    pub fn deactivate(&self, feature: &str, ident: &str) {
+    pub fn deactivate(&self, feature: &str, ident: &str) -> Result<(), redis::RedisError> {
         let key = format!("{}_{}", feature, ident);
-        let _: () = self.connection.set(&key, "false").unwrap();
+        let success: () = self.connection.set(&key, "false")?;
+        Ok(success)
     }
 }
