@@ -2,17 +2,16 @@ extern crate rollout;
 
 // TODO: think about cleanup for redis db between tests
 mod tests {
+    use std;
     use rollout::Flipper;
 
-    #[test]
-    fn it_works() {
+    fn test_for_ident<T: std::hash::Hash + std::fmt::Display>(ident: &T) {
         let f: Flipper = Flipper::new().expect("Couldn't create a flipper!?");
         let feature = "retweetable";
-        let ident = "1240";
 
         assert_eq!(
             f.active(feature, ident).expect(
-                "Could not check active status",
+                "Could not check active status (first time)",
             ),
             false
         );
@@ -23,7 +22,7 @@ mod tests {
 
         assert_eq!(
             f.active(feature, ident).expect(
-                "Could not check active status",
+                "Could not check active status (second time)",
             ),
             true
         );
@@ -34,9 +33,21 @@ mod tests {
 
         assert_eq!(
             f.active(feature, ident).expect(
-                "Could not check active status",
+                "Could not check active status (third time)",
             ),
             false
         );
+    }
+
+    #[test]
+    fn it_works() {
+        let ident = "1240";
+        test_for_ident(&ident);
+    }
+
+    #[test]
+    fn it_allows_other_kinds_of_idents() {
+        let ident = 4444;
+        test_for_ident(&ident);
     }
 }

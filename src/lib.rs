@@ -1,7 +1,6 @@
 extern crate redis;
 use redis::Commands;
 
-// TODO: figure out an error handling strategy
 // TODO: add percentage-based rollouts
 // TODO: add namespacing??
 // TODO: consider whether we're modeling the data in any kind of consistent way
@@ -18,19 +17,39 @@ impl Flipper {
         Ok(Flipper { connection: client.get_connection()? })
     }
 
-    pub fn active(&self, feature: &str, ident: &str) -> Result<bool, redis::RedisError> {
+    pub fn active<T: std::hash::Hash + std::fmt::Display>(
+        &self,
+        feature: &str,
+        ident: &T,
+    ) -> Result<bool, redis::RedisError> {
         let key = format!("{}_{}", feature, ident);
         let result: Result<String, redis::RedisError> = self.connection.get(&key);
-        Ok(result? == "true")
+        match result {
+            Ok(value) => Ok(value == "true"), // TODO: validate that it is either true or false?
+            Err(e) => {
+                match e.kind() {
+                    redis::ErrorKind::TypeError => Ok(false),
+                    _ => Err(e),
+                }
+            }
+        }
     }
 
-    pub fn activate(&self, feature: &str, ident: &str) -> Result<(), redis::RedisError> {
+    pub fn activate<T: std::hash::Hash + std::fmt::Display>(
+        &self,
+        feature: &str,
+        ident: &T,
+    ) -> Result<(), redis::RedisError> {
         let key = format!("{}_{}", feature, ident);
         let success: () = self.connection.set(&key, "true")?;
         Ok(success)
     }
 
-    pub fn deactivate(&self, feature: &str, ident: &str) -> Result<(), redis::RedisError> {
+    pub fn deactivate<T: std::hash::Hash + std::fmt::Display>(
+        &self,
+        feature: &str,
+        ident: &T,
+    ) -> Result<(), redis::RedisError> {
         let key = format!("{}_{}", feature, ident);
         let success: () = self.connection.set(&key, "false")?;
         Ok(success)
