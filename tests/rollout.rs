@@ -5,9 +5,8 @@ mod tests {
     use std;
     use rollout::Flipper;
 
-    fn test_for_ident<T: std::hash::Hash + std::fmt::Display>(ident: &T) {
+    fn test_for_ident<T: std::hash::Hash + std::fmt::Display>(feature: &str, ident: &T) {
         let f: Flipper = Flipper::new().expect("Couldn't create a flipper!?");
-        let feature = "retweetable";
 
         assert_eq!(
             f.active(feature, ident).expect(
@@ -41,13 +40,15 @@ mod tests {
 
     #[test]
     fn it_works() {
+        let feature = "round_profiles";
         let ident = "1240";
-        test_for_ident(&ident);
+        test_for_ident(&feature, &ident);
     }
 
     #[test]
     fn it_allows_other_kinds_of_idents() {
+        let feature = "group_dms";
         let ident = 4444;
-        test_for_ident(&ident);
+        test_for_ident(&feature, &ident);
     }
 }
