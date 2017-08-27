@@ -3,7 +3,7 @@ use redis::Commands;
 
 // TODO: handle multiple users in the same rollout without overwriting data
 // TODO: add percentage-based rollouts
-// TODO: add namespacing??
+// TODO: add group-based rollouts
 // TODO: test that things work with multiple features
 // TODO: consider maintaining state in memory rather than re-querying for it
 //       each time
