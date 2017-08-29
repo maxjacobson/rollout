@@ -9,4 +9,4 @@ with the ruby library [fetlife/rollout](https://github.com/fetlife/rollout).
   * on a mac with [homebrew](https://brew.sh/)
     * `brew install redis`
     * `brew services start redis`
-* `cargo test`
+* `make test`
