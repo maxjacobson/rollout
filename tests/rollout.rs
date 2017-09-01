@@ -1,35 +1,68 @@
 extern crate redis;
 extern crate rollout;
 
-// TODO: think about cleanup for redis db between tests
 // TODO: research what is the conventional way to organize a test suite with
 //       before hooks? I'm looking at libraries like stainless and shiny. I'm
 //       curious which has caught on...
-//
-//  TODO: make tests work in parallel by using a different redis db for each
-//        test (would need to be able to inject the redis URL via a parameter)
-//
-//        alternatively: avoid talking to redis at all in the tests (would
-//        require injecting some kind of fake redis client)
+
 mod tests {
     use std;
-    use rollout::Flipper;
-    use redis;
+    use rollout::{Flipper, Store, StoreError};
+    use std::collections::HashMap;
+    use std::cell::RefCell;
 
-    // TODO: delete me when we no longer need this
-    //       (once we stop using actual redis in the test environment)
-    fn cleanup<T: std::fmt::Display>(tag: T) {
-        let client = redis::Client::open("redis://127.0.0.1/").unwrap();
-        let connection = client.get_connection().unwrap();
-
-        println!("[{}] Flushing db...", tag);
-        redis::cmd("FLUSHDB").execute(&connection);
+    struct FakeDatabase {
+        pairs: HashMap<String, String>,
     }
 
+    impl FakeDatabase {
+        fn new() -> FakeDatabase {
+            FakeDatabase { pairs: HashMap::new() }
+        }
+
+        fn insert(&mut self, key: String, value: String) {
+            self.pairs.insert(key, value);
+        }
+
+        fn get(&self, key: String) -> Option<String> {
+            match self.pairs.get(key.as_str()) {
+                Some(value) => Some(value.to_owned()),
+                None => None,
+            }
+        }
+    }
+
+    struct FakeStore {
+        database: RefCell<FakeDatabase>,
+    }
+
+    impl FakeStore {
+        fn new() -> FakeStore {
+            let database = FakeDatabase::new();
+
+            FakeStore { database: RefCell::new(database) }
+        }
+    }
+
+    impl Store for FakeStore {
+        fn write(&self, key: String, value: String) -> Result<(), StoreError> {
+            let mut db = self.database.borrow_mut();
+            db.insert(key, value);
+
+            Ok(())
+        }
+
+        fn read(&self, key: String) -> Result<Option<String>, StoreError> {
+            match self.database.borrow().get(key) {
+                Some(value) => Ok(Some(value.to_owned())),
+                None => Ok(None),
+            }
+        }
+    }
 
     fn test_for_ident<T: std::hash::Hash + std::fmt::Display>(feature: &str, ident: &T) {
-        let client = redis::Client::open("redis://127.0.0.1/").expect("Could not make client");
-        let store = client.get_connection().expect("Could not get connection");
+        let store = FakeStore::new();
+
         let f = Flipper { store: store };
 
         let other_feature = &"shared_feature_in_both_tests";
@@ -62,7 +95,6 @@ mod tests {
 
     #[test]
     fn it_works_for_string_features() {
-        cleanup("string");
         let feature = "string_feature";
         let ident = "1240";
         test_for_ident(&feature, &ident);
@@ -70,7 +102,6 @@ mod tests {
 
     #[test]
     fn it_works_for_int_features() {
-        cleanup("int");
         let feature = "int_feature";
         let ident = 4444;
         test_for_ident(&feature, &ident);
