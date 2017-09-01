@@ -58,20 +58,18 @@ impl<S: Store> Flipper<S> {
         feature: &str,
         ident: &T,
     ) -> Result<bool, StoreError> {
-        // TODO: use ?
-        let data: Result<Option<String>, StoreError> =
-            self.store.read(format!("feature:{}", feature));
+        let data: Option<String> = self.store.read(format!("feature:{}", feature))?;
 
         match data {
-            Ok(Some(results)) => {
+            Some(results) => {
                 let parts: Vec<_> = results.split("|").collect();
                 let users = parts[1];
                 let idents: Vec<_> = users.split(",").collect();
                 let str_ident = format!("{}", ident);
                 Ok(idents.contains(&str_ident.as_str()))
             }
-            Ok(None) => Ok(false),
-            Err(e) => Err(e),
+
+            None => Ok(false),
         }
     }
 
