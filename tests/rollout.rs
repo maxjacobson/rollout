@@ -5,13 +5,19 @@ extern crate rollout;
 // TODO: research what is the conventional way to organize a test suite with
 //       before hooks? I'm looking at libraries like stainless and shiny. I'm
 //       curious which has caught on...
+//
 //  TODO: make tests work in parallel by using a different redis db for each
 //        test (would need to be able to inject the redis URL via a parameter)
+//
+//        alternatively: avoid talking to redis at all in the tests (would
+//        require injecting some kind of fake redis client)
 mod tests {
     use std;
     use rollout::Flipper;
     use redis;
 
+    // TODO: delete me when we no longer need this
+    //       (once we stop using actual redis in the test environment)
     fn cleanup<T: std::fmt::Display>(tag: T) {
         let client = redis::Client::open("redis://127.0.0.1/").unwrap();
         let connection = client.get_connection().unwrap();
@@ -20,8 +26,11 @@ mod tests {
         redis::cmd("FLUSHDB").execute(&connection);
     }
 
+
     fn test_for_ident<T: std::hash::Hash + std::fmt::Display>(feature: &str, ident: &T) {
-        let f: Flipper = Flipper::new().expect("Couldn't create a flipper!?");
+        let client = redis::Client::open("redis://127.0.0.1/").expect("Could not make client");
+        let store = client.get_connection().expect("Could not get connection");
+        let f = Flipper { store: store };
 
         let other_feature = &"shared_feature_in_both_tests";
         let other_ident = &"4567";
@@ -54,7 +63,6 @@ mod tests {
     #[test]
     fn it_works_for_string_features() {
         cleanup("string");
-
         let feature = "string_feature";
         let ident = "1240";
         test_for_ident(&feature, &ident);
@@ -63,7 +71,6 @@ mod tests {
     #[test]
     fn it_works_for_int_features() {
         cleanup("int");
-
         let feature = "int_feature";
         let ident = 4444;
         test_for_ident(&feature, &ident);

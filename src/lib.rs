@@ -10,39 +10,68 @@ use redis::Commands;
 // TODO: rename ident
 // TODO: consider simplifying the ident constraints
 
-pub struct Flipper {
-    connection: redis::Connection,
+
+// TODO: make some trait to allow more flexibility in key and value types?
+pub trait Store {
+    fn write(&self, key: String, value: String) -> Result<(), StoreError>;
+
+    fn read(&self, key: String) -> Result<Option<String>, StoreError>;
 }
 
-impl Flipper {
-    pub fn new() -> Result<Flipper, redis::RedisError> {
-        let client = redis::Client::open("redis://127.0.0.1/")?;
+#[derive(Debug)]
+pub enum StoreError {
+    RedisError(redis::RedisError),
+    MiscError,
+}
 
-        Ok(Flipper { connection: client.get_connection()? })
+pub struct Flipper<S: Store> {
+    pub store: S,
+}
+
+impl Store for redis::Connection {
+    fn write(&self, key: String, value: String) -> Result<(), StoreError> {
+        let result: Result<(), redis::RedisError> = self.set(key, value);
+        match result {
+            Ok(_) => Ok(()),
+            Err(e) => Err(StoreError::RedisError(e)),
+        }
     }
 
+    fn read(&self, key: String) -> Result<Option<String>, StoreError> {
+        let result: Result<String, redis::RedisError> = self.get(key);
+
+        match result {
+            Ok(value) => Ok(Some(value)),
+            Err(e) => {
+                match e.kind() {
+                    redis::ErrorKind::TypeError => Ok(None),
+                    _ => Err(StoreError::RedisError(e)),
+                }
+            }
+        }
+    }
+}
+
+impl<S: Store> Flipper<S> {
     pub fn active<T: std::hash::Hash + std::fmt::Display>(
         &self,
         feature: &str,
         ident: &T,
-    ) -> Result<bool, redis::RedisError> {
-        let data: Result<String, redis::RedisError> =
-            self.connection.get(format!("feature:{}", feature));
+    ) -> Result<bool, StoreError> {
+        // TODO: use ?
+        let data: Result<Option<String>, StoreError> =
+            self.store.read(format!("feature:{}", feature));
 
         match data {
-            Ok(results) => {
+            Ok(Some(results)) => {
                 let parts: Vec<_> = results.split("|").collect();
                 let users = parts[1];
                 let idents: Vec<_> = users.split(",").collect();
                 let str_ident = format!("{}", ident);
                 Ok(idents.contains(&str_ident.as_str()))
             }
-            Err(e) => {
-                match e.kind() {
-                    redis::ErrorKind::TypeError => Ok(false),
-                    _ => Err(e),
-                }
-            }
+            Ok(None) => Ok(false),
+            Err(e) => Err(e),
         }
     }
 
@@ -50,26 +79,28 @@ impl Flipper {
         &self,
         feature: &str,
         ident: &T,
-    ) -> Result<(), redis::RedisError> {
+    ) -> Result<(), StoreError> {
         let mut list = self.all_features()?;
         if !list.contains(&feature.to_owned()) {
             list.push(feature.to_owned());
-            let _: () = self.connection.set("feature:__features__", list.join(","))?;
+            let _: () = self.store.write(
+                "feature:__features__".to_owned(),
+                list.join(","),
+            )?;
         }
 
         let value = format!("{}|{}||{}", "0", ident, "{}");
 
-        let success: () = self.connection.set(format!("feature:{}", feature), value)?;
+        let success: () = self.store.write(format!("feature:{}", feature), value)?;
 
         Ok(success)
     }
 
-    pub fn all_features(&self) -> Result<Vec<String>, redis::RedisError> {
-        let features: Result<String, redis::RedisError> =
-            self.connection.get("feature:__features__");
+    pub fn all_features(&self) -> Result<Vec<String>, StoreError> {
+        let features: Option<String> = self.store.read("feature:__features__".to_owned())?;
 
         match features {
-            Ok(csv_features) => {
+            Some(csv_features) => {
                 let mut features_to_return = vec![];
                 let features_split: Vec<&str> = csv_features.split(",").collect();
 
@@ -79,12 +110,8 @@ impl Flipper {
 
                 Ok(features_to_return)
             }
-            Err(e) => {
-                match e.kind() {
-                    redis::ErrorKind::TypeError => Ok(vec![]),
-                    _ => Err(e),
-                }
-            }
+
+            None => Ok(vec![]),
         }
     }
 
@@ -92,8 +119,8 @@ impl Flipper {
         &self,
         feature: &str,
         ident: &T,
-    ) -> Result<(), redis::RedisError> {
-        let success: () = self.connection.set(
+    ) -> Result<(), StoreError> {
+        let success: () = self.store.write(
             format!("feature:{}", feature),
             format!("{}|{}||{}", "0", "", "{}"),
         )?;
