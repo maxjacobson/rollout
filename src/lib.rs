@@ -87,7 +87,25 @@ impl<S: Store> Flipper<S> {
             )?;
         }
 
-        let value = format!("{}|{}||{}", "0", ident, "{}");
+        let ident_string = format!("{}", ident);
+        let currently_active_for_feature: Option<String> =
+            self.store.read(format!("feature:{}", feature))?;
+
+        let new_feature_data = if let Some(results) = currently_active_for_feature {
+            let parts: Vec<_> = results.split("|").collect();
+            let users = parts[1];
+            let mut idents: Vec<_> = users.split(",").collect();
+            let ident_str = ident_string.as_str();
+            if !idents.contains(&ident_str) {
+                idents.push(&ident_str);
+            }
+
+            idents.join(",")
+        } else {
+            ident_string
+        };
+
+        let value = format!("{}|{}||{}", "0", new_feature_data, "{}");
 
         let success: () = self.store.write(format!("feature:{}", feature), value)?;
 

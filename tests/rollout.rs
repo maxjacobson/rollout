@@ -77,17 +77,18 @@ mod tests {
         let no_features_yet: Vec<String> = vec![];
         assert_eq!(f.all_features().unwrap(), no_features_yet);
         assert_eq!(f.active(feature, ident).unwrap(), false);
-        assert_eq!(f.all_features().unwrap(), no_features_yet);
         assert_eq!(f.active(other_feature, other_ident).unwrap(), false);
-        assert_eq!(f.all_features().unwrap(), no_features_yet);
+        assert_eq!(f.active(feature, other_ident).unwrap(), false);
 
         f.activate(feature, ident).unwrap();
+        f.activate(feature, other_ident).unwrap();
 
         assert_eq!(f.all_features().unwrap(), vec![feature]);
         f.activate(other_feature, other_ident).unwrap();
         assert_eq!(f.all_features().unwrap(), vec![feature, other_feature]);
 
         assert_eq!(f.active(feature, ident).unwrap(), true);
+        assert_eq!(f.active(feature, other_ident).unwrap(), true);
         assert_eq!(f.active(other_feature, other_ident).unwrap(), true);
 
         f.deactivate(feature, ident).unwrap();
