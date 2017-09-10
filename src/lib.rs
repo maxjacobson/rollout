@@ -2,9 +2,10 @@ extern crate redis;
 use redis::Commands;
 
 // Feature completeness:
-// TODO: don't clobber percent/group info when activating
 // TODO: add percentage-based rollouts
 // TODO: add group-based rollouts
+// TODO: what's the deal with the 3rd position in the string? It seems to go: pct|ids|(blank)|group
+//       but that's kinds weird, right?
 //
 // Implementation ideas:
 // TODO: consider maintaining state in memory rather than re-querying for it
@@ -85,21 +86,25 @@ impl<S: Store> Flipper<S> {
 
         let new_feature_data = if let Some(results) = currently_active_for_feature {
             let parts: Vec<_> = results.split("|").collect();
+            let pct = parts[0];
             let users = parts[1];
+            let groups = parts[3];
             let mut ids: Vec<_> = users.split(",").collect();
             let id_str = id_string.as_str();
             if !ids.contains(&id_str) {
                 ids.push(&id_str);
             }
 
-            ids.join(",")
+            format!("{}|{}||{}", pct, ids.join(","), groups)
         } else {
-            id_string
+            format!("{}|{}||{}", "0", id_string, "{}")
         };
 
-        let value = format!("{}|{}||{}", "0", new_feature_data, "{}");
 
-        let success: () = self.store.write(format!("feature:{}", feature), value)?;
+        let success: () = self.store.write(
+            format!("feature:{}", feature),
+            new_feature_data,
+        )?;
 
         Ok(success)
     }
