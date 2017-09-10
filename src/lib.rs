@@ -6,8 +6,7 @@ use redis::Commands;
 // TODO: add group-based rollouts
 // TODO: consider maintaining state in memory rather than re-querying for it
 //       each time
-// TODO: rename ident
-// TODO: consider simplifying the ident constraints
+// TODO: consider simplifying the id constraints
 // TODO: resolve duplication
 
 // TODO: make some trait to allow more flexibility in key and value types?
@@ -54,7 +53,7 @@ impl<S: Store> Flipper<S> {
     pub fn active<T: std::hash::Hash + std::fmt::Display>(
         &self,
         feature: &str,
-        ident: &T,
+        id: &T,
     ) -> Result<bool, StoreError> {
         let data: Option<String> = self.store.read(format!("feature:{}", feature))?;
 
@@ -62,9 +61,9 @@ impl<S: Store> Flipper<S> {
             Some(results) => {
                 let parts: Vec<_> = results.split("|").collect();
                 let users = parts[1];
-                let idents: Vec<_> = users.split(",").collect();
-                let str_ident = format!("{}", ident);
-                Ok(idents.contains(&str_ident.as_str()))
+                let ids: Vec<_> = users.split(",").collect();
+                let str_id = format!("{}", id);
+                Ok(ids.contains(&str_id.as_str()))
             }
 
             None => Ok(false),
@@ -74,7 +73,7 @@ impl<S: Store> Flipper<S> {
     pub fn activate<T: std::hash::Hash + std::fmt::Display>(
         &self,
         feature: &str,
-        ident: &T,
+        id: &T,
     ) -> Result<(), StoreError> {
         let mut list = self.all_features()?;
         if !list.contains(&feature.to_owned()) {
@@ -85,22 +84,22 @@ impl<S: Store> Flipper<S> {
             )?;
         }
 
-        let ident_string = format!("{}", ident);
+        let id_string = format!("{}", id);
         let currently_active_for_feature: Option<String> =
             self.store.read(format!("feature:{}", feature))?;
 
         let new_feature_data = if let Some(results) = currently_active_for_feature {
             let parts: Vec<_> = results.split("|").collect();
             let users = parts[1];
-            let mut idents: Vec<_> = users.split(",").collect();
-            let ident_str = ident_string.as_str();
-            if !idents.contains(&ident_str) {
-                idents.push(&ident_str);
+            let mut ids: Vec<_> = users.split(",").collect();
+            let id_str = id_string.as_str();
+            if !ids.contains(&id_str) {
+                ids.push(&id_str);
             }
 
-            idents.join(",")
+            ids.join(",")
         } else {
-            ident_string
+            id_string
         };
 
         let value = format!("{}|{}||{}", "0", new_feature_data, "{}");
@@ -132,11 +131,11 @@ impl<S: Store> Flipper<S> {
     pub fn deactivate<T: std::hash::Hash + std::fmt::Display>(
         &self,
         feature: &str,
-        ident: &T,
+        id: &T,
     ) -> Result<(), StoreError> {
-        // look up the idents the feature is currently active for
+        // look up the ids the feature is currently active for
         // if you find anything
-        //   remove the provided ident
+        //   remove the provided id
         // else
         //  just return
         //
@@ -152,12 +151,12 @@ impl<S: Store> Flipper<S> {
                 let pct = parts[0];
                 let users = parts[1];
                 let groups = parts[3];
-                let idents: Vec<_> = users.split(",").collect();
-                let str_ident = format!("{}", ident);
-                let mut new_idents = Vec::new();
-                for existing_ident in idents {
-                    if existing_ident != str_ident {
-                        new_idents.push(existing_ident);
+                let ids: Vec<_> = users.split(",").collect();
+                let str_id = format!("{}", id);
+                let mut new_ids = Vec::new();
+                for existing_id in ids {
+                    if existing_id != str_id {
+                        new_ids.push(existing_id);
                     }
                 }
 
@@ -166,7 +165,7 @@ impl<S: Store> Flipper<S> {
                     format!(
                         "{}|{}||{}",
                         pct,
-                        new_idents.join(","),
+                        new_ids.join(","),
                         groups
                     ),
                 )?;

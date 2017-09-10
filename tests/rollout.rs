@@ -66,37 +66,37 @@ mod tests {
         }
     }
 
-    fn test_for_ident<T: std::hash::Hash + std::fmt::Display>(feature: &str, ident: &T) {
+    fn test_for_id<T: std::hash::Hash + std::fmt::Display>(feature: &str, id: &T) {
         let store = FakeStore::new();
 
         let f = Flipper { store: store };
 
         let other_feature = &"shared_feature_in_both_tests";
-        let other_ident = &"4567";
+        let other_id = &"4567";
 
         let no_features_yet: Vec<String> = vec![];
         assert_eq!(f.all_features().unwrap(), no_features_yet);
-        assert_eq!(f.active(feature, ident).unwrap(), false);
-        assert_eq!(f.active(other_feature, other_ident).unwrap(), false);
-        assert_eq!(f.active(feature, other_ident).unwrap(), false);
+        assert_eq!(f.active(feature, id).unwrap(), false);
+        assert_eq!(f.active(other_feature, other_id).unwrap(), false);
+        assert_eq!(f.active(feature, other_id).unwrap(), false);
 
-        f.activate(feature, ident).unwrap();
-        f.activate(feature, other_ident).unwrap();
+        f.activate(feature, id).unwrap();
+        f.activate(feature, other_id).unwrap();
 
         assert_eq!(f.all_features().unwrap(), vec![feature]);
-        f.activate(other_feature, other_ident).unwrap();
+        f.activate(other_feature, other_id).unwrap();
         assert_eq!(f.all_features().unwrap(), vec![feature, other_feature]);
 
-        assert_eq!(f.active(feature, ident).unwrap(), true);
-        assert_eq!(f.active(feature, other_ident).unwrap(), true);
-        assert_eq!(f.active(other_feature, other_ident).unwrap(), true);
+        assert_eq!(f.active(feature, id).unwrap(), true);
+        assert_eq!(f.active(feature, other_id).unwrap(), true);
+        assert_eq!(f.active(other_feature, other_id).unwrap(), true);
 
-        f.deactivate(feature, ident).unwrap();
-        f.deactivate(other_feature, other_ident).unwrap();
+        f.deactivate(feature, id).unwrap();
+        f.deactivate(other_feature, other_id).unwrap();
 
-        assert_eq!(f.active(feature, ident).unwrap(), false);
-        assert_eq!(f.active(other_feature, other_ident).unwrap(), false);
-        assert_eq!(f.active(feature, other_ident).unwrap(), true);
+        assert_eq!(f.active(feature, id).unwrap(), false);
+        assert_eq!(f.active(other_feature, other_id).unwrap(), false);
+        assert_eq!(f.active(feature, other_id).unwrap(), true);
 
         assert_eq!(f.all_features().unwrap(), vec![feature, other_feature]);
     }
@@ -104,14 +104,14 @@ mod tests {
     #[test]
     fn it_works_for_string_features() {
         let feature = "string_feature";
-        let ident = "1240";
-        test_for_ident(&feature, &ident);
+        let id = "1240";
+        test_for_id(&feature, &id);
     }
 
     #[test]
     fn it_works_for_int_features() {
         let feature = "int_feature";
-        let ident = 4444;
-        test_for_ident(&feature, &ident);
+        let id = 4444;
+        test_for_id(&feature, &id);
     }
 }
