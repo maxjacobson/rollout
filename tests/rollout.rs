@@ -62,7 +62,7 @@ mod tests {
         }
     }
 
-    fn test_for_id<T: std::hash::Hash + std::fmt::Display>(feature: &str, id: &T) {
+    fn test_for_id<T: std::fmt::Display>(feature: &str, id: &T) {
         let store = FakeStore::new();
 
         let f = Flipper { store: store };

@@ -9,7 +9,6 @@ use redis::Commands;
 // Implementation ideas:
 // TODO: consider maintaining state in memory rather than re-querying for it
 //       each time
-// TODO: consider simplifying the id constraints
 //
 // Code cleanliness:
 // TODO: resolve duplication across serializing/deserializing feature data
@@ -54,11 +53,7 @@ impl Store for redis::Connection {
 }
 
 impl<S: Store> Flipper<S> {
-    pub fn active<T: std::hash::Hash + std::fmt::Display>(
-        &self,
-        feature: &str,
-        id: &T,
-    ) -> Result<bool, StoreError> {
+    pub fn active<T: std::fmt::Display>(&self, feature: &str, id: &T) -> Result<bool, StoreError> {
         let data: Option<String> = self.store.read(format!("feature:{}", feature))?;
 
         match data {
@@ -74,11 +69,7 @@ impl<S: Store> Flipper<S> {
         }
     }
 
-    pub fn activate<T: std::hash::Hash + std::fmt::Display>(
-        &self,
-        feature: &str,
-        id: &T,
-    ) -> Result<(), StoreError> {
+    pub fn activate<T: std::fmt::Display>(&self, feature: &str, id: &T) -> Result<(), StoreError> {
         let mut list = self.all_features()?;
         if !list.contains(&feature.to_owned()) {
             list.push(feature.to_owned());
@@ -132,7 +123,7 @@ impl<S: Store> Flipper<S> {
         }
     }
 
-    pub fn deactivate<T: std::hash::Hash + std::fmt::Display>(
+    pub fn deactivate<T: std::fmt::Display>(
         &self,
         feature: &str,
         id: &T,
