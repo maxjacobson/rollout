@@ -128,16 +128,6 @@ impl<S: Store> Flipper<S> {
         feature: &str,
         id: &T,
     ) -> Result<(), StoreError> {
-        // look up the ids the feature is currently active for
-        // if you find anything
-        //   remove the provided id
-        // else
-        //  just return
-        //
-        //  if the feature is now rolled out to nobody, do remove it from the list of features?
-        //  probably not
-
-
         let existing_data = self.store.read(format!("feature:{}", feature))?;
 
         match existing_data {
