@@ -96,6 +96,7 @@ mod tests {
 
         assert_eq!(f.active(feature, ident).unwrap(), false);
         assert_eq!(f.active(other_feature, other_ident).unwrap(), false);
+        assert_eq!(f.active(feature, other_ident).unwrap(), true);
 
         assert_eq!(f.all_features().unwrap(), vec![feature, other_feature]);
     }

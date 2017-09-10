@@ -1,7 +1,6 @@
 extern crate redis;
 use redis::Commands;
 
-// TODO: deactivate just should remove one ident, not all of 'em
 // TODO: handle multiple users in the same rollout without overwriting data
 // TODO: add percentage-based rollouts
 // TODO: add group-based rollouts
@@ -136,11 +135,47 @@ impl<S: Store> Flipper<S> {
         feature: &str,
         ident: &T,
     ) -> Result<(), StoreError> {
-        let success: () = self.store.write(
-            format!("feature:{}", feature),
-            format!("{}|{}||{}", "0", "", "{}"),
-        )?;
+        // look up the idents the feature is currently active for
+        // if you find anything
+        //   remove the provided ident
+        // else
+        //  just return
+        //
+        //  if the feature is now rolled out to nobody, do remove it from the list of features?
+        //  probably not
 
-        Ok(success)
+
+        let existing_data = self.store.read(format!("feature:{}", feature))?;
+
+        match existing_data {
+            Some(results) => {
+                let parts: Vec<_> = results.split("|").collect();
+                let pct = parts[0];
+                let users = parts[1];
+                let groups = parts[3];
+                let idents: Vec<_> = users.split(",").collect();
+                let str_ident = format!("{}", ident);
+                let mut new_idents = Vec::new();
+                for existing_ident in idents {
+                    if existing_ident != str_ident {
+                        new_idents.push(existing_ident);
+                    }
+                }
+
+                let success: () = self.store.write(
+                    format!("feature:{}", feature),
+                    format!(
+                        "{}|{}||{}",
+                        pct,
+                        new_idents.join(","),
+                        groups
+                    ),
+                )?;
+
+                Ok(success)
+            }
+
+            None => Ok(()),
+        }
     }
 }
