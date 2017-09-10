@@ -1,15 +1,19 @@
 extern crate redis;
 use redis::Commands;
 
+// Feature completeness:
 // TODO: handle multiple users in the same rollout without overwriting data
 // TODO: add percentage-based rollouts
 // TODO: add group-based rollouts
+//
+// Implementation ideas:
 // TODO: consider maintaining state in memory rather than re-querying for it
 //       each time
 // TODO: consider simplifying the id constraints
-// TODO: resolve duplication
+//
+// Code cleanliness:
+// TODO: resolve duplication across serializing/deserializing feature data
 
-// TODO: make some trait to allow more flexibility in key and value types?
 pub trait Store {
     fn write(&self, key: String, value: String) -> Result<(), StoreError>;
 

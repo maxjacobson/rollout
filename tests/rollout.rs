@@ -1,9 +1,5 @@
 extern crate rollout;
 
-// TODO: research what is the conventional way to organize a test suite with
-//       before hooks? I'm looking at libraries like stainless and shiny. I'm
-//       curious which has caught on...
-//
 // TODO: decide if we want to have _any_ tests that actually hit redis. Maybe
 //       that would be the integration test I was imagining which tests the
 //       compatibility with the rubygem by actually using it
