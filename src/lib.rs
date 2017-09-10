@@ -2,7 +2,7 @@ extern crate redis;
 use redis::Commands;
 
 // Feature completeness:
-// TODO: handle multiple users in the same rollout without overwriting data
+// TODO: don't clobber percent/group info when activating
 // TODO: add percentage-based rollouts
 // TODO: add group-based rollouts
 //
