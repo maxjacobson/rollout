@@ -20,7 +20,6 @@ pub trait Store {
 #[derive(Debug)]
 pub enum StoreError {
     RedisError(redis::RedisError),
-    MiscError,
 }
 
 pub struct Flipper<S: Store> {
