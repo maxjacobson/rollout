@@ -8,7 +8,7 @@ use redis::Commands;
 //       each time
 // TODO: rename ident
 // TODO: consider simplifying the ident constraints
-
+// TODO: resolve duplication
 
 // TODO: make some trait to allow more flexibility in key and value types?
 pub trait Store {
